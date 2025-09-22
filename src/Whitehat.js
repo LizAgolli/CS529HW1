@@ -48,35 +48,6 @@ export default function Whitehat(props){
             //this function takes a number 0-1 and returns a color
             const colorMap = d3.interpolateYlOrRd;
 
-            //this section of code sets up the colormap
-            const stateCounts = Object.values(stateData).map(getEncodedFeature);
-
-            //get color extends for the color legend
-            const [stateMin,stateMax] = d3.extent(stateCounts);
-
-	    // red is more bad
-            const stateScale = d3.scaleLinear()
-                .domain([stateMin,stateMax])
-                .range([0,1]);
-
-            //this function takes a number 0-1 and returns a color
-            const colorMap = d3.interpolateYlOrRd;
-
-
-            //this section of code sets up the colormap
-            const stateCounts = Object.values(stateData).map(getEncodedFeature);
-
-            //get color extends for the color legend
-            const [stateMin,stateMax] = d3.extent(stateCounts);
-
-            //changed so more red is more bad
-            const stateScale = d3.scaleLinear()
-                .domain([0,stateMax])
-                .range([0,1]);
-
-            //this function takes a number 0-1 and returns a color
-            const colorMap = d3.interpolateYlOrRd;
-
             //this set of functions extracts the features given the state name from the geojson
             function getCount(name){
                 //map uses full name, dataset uses abreviations
