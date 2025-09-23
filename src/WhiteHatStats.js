@@ -62,20 +62,31 @@ const color = d3.scaleOrdinal()
   const formatValue = x => isNaN(x) ? "N/A" : x.toLocaleString("en")
 
   // Append a group for each series, and a rect for each element in the series.
-  svg.append("g")
-    .selectAll()
-    .data(series)
-    .join("g")
-      .attr("fill", d => color(d.key))
-    .selectAll("rect")
-    .data(D => D.map(d => (d.key = D.key, d)))
-    .join("rect")
-      .attr("x", d => x(d.data[0]))
-      .attr("y", d => y(d[1]))
-      .attr("height", d => y(d[0]) - y(d[1]))
-      .attr("width", x.bandwidth())
-    .append("title")
-      .text(d => `${d.data[0]} ${d.key}\n${formatValue(d.data[1].get(d.key).count)}`);
+	const chartGroup = svg.append("g");
+
+	chartGroup.selectAll("g")
+    		.data(series)
+    		.join("g")
+    		.attr("fill", d => color(d.key))
+    		.selectAll("rect")
+    		.data(D => D.map(d => (d.key = D.key, d)))
+    		.join("rect")
+    		.attr("x", d => x(d.data.state))  // Changed from d.data[0] to d.data.state
+    		.attr("y", d => y(d[1]))
+    		.attr("height", d => y(d[0]) - y(d[1]))
+    		.attr("width", x.bandwidth())
+    .on('mouseover', (e, d) => {
+        const gender = d.key === 'male' ? 'Male' : 'Female';
+        const text = `${d.data.state} ${gender}\n${formatValue(d.data[d.key])}`;
+        tTip.html(text.replace('\n', '</br>'));
+        props.ToolTip.moveTTipEvent(tTip, e);
+    })
+    .on('mousemove', (e) => {
+        props.ToolTip.moveTTipEvent(tTip, e);
+    })
+    .on('mouseout', () => {
+        props.ToolTip.hideTTip(tTip);
+    });
 
   // Append the horizontal axis.
   svg.append("g")
@@ -88,6 +99,13 @@ const color = d3.scaleOrdinal()
       .attr("transform", `translate(${marginLeft},0)`)
       .call(d3.axisLeft(y).ticks(null, "s"))
       .call(g => g.selectAll(".domain").remove());
+
+  // Add chart title and legend
+  svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("font-size", "16px")
+    .attr("font-weight", "bold")
+    .text("Gun Deaths by State and Gender");
 
   // Return the chart with the color scale as a property (for the legend).
   return Object.assign(svg.node(), {scales: {color}});
@@ -103,4 +121,4 @@ const color = d3.scaleOrdinal()
 }
 //END of TODO #1.
 
- 
+//works but x-axis text too big, how to get abbreviated names... 
