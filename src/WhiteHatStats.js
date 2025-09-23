@@ -37,7 +37,7 @@ export default function WhiteHatStats(props){
 
        //sorting states by total deaths
 	stackedData.sort((a, b) => b.total - a.total);
-//too many variable names!!!
+
 //https://observablehq.com/@d3/stacked-bar-chart/2 https://observablehq.com/@d3/stacked-horizontal-bar-chart/2  is where I got reference code
 
 //stacking data
@@ -45,7 +45,7 @@ const series = d3.stack().keys(['male', 'female'])(stackedData);
 
 // Prepare the scales for positional and color encodings.
   const x = d3.scaleBand()
-      .domain(d3.groupSort(data, D => -d3.sum(D, d => d.count), d => d.state))
+      .domain(d3.stackedData(data, D => -d3.sum(D, d => d.count), d => d.state))
       .range([marginLeft, width - marginRight])
       .padding(0.1);
 
