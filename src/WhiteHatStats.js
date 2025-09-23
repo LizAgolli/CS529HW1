@@ -45,18 +45,18 @@ const series = d3.stack().keys(['male', 'female'])(stackedData);
 
 // Prepare the scales for positional and color encodings.
   const x = d3.scaleBand()
-      .domain(d3.stackedData(data, D => -d3.sum(D, d => d.count), d => d.state))
-      .range([marginLeft, width - marginRight])
-      .padding(0.1);
+    .domain(stackedData.map(d => d.state))  // Use state names from your stackedData
+    .range([marginLeft, width - marginRight])
+    .padding(0.1);
 
-  const y = d3.scaleLinear()
-      .domain([0, d3.max(series, d => d3.max(d, d => d[1]))])
-      .rangeRound([height - marginBottom, marginTop]);
+const y = d3.scaleLinear()
+    .domain([0, d3.max(series, d => d3.max(d, d => d[1]))])
+    .rangeRound([height - marginBottom, marginTop]);
 
-  const color = d3.scaleOrdinal()
-      .domain(series.map(d => d.key))
-      .range(d3.schemeSpectral[series.length])
-      .unknown("#ccc");
+const color = d3.scaleOrdinal()
+    .domain(series.map(d => d.key))  // ['male', 'female']
+    .range(['#0671B7', '#F8B7CD'])   // Explicit colors for male/female
+    .unknown("#ccc");
 
   // A function to format the value in the tooltip.
   const formatValue = x => isNaN(x) ? "N/A" : x.toLocaleString("en")
