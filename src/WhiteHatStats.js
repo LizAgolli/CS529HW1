@@ -28,7 +28,7 @@ export default function WhiteHatStats(props){
         const data = props.data.states;
 
         //data
-        const data = data.map(state => ({
+        const stackedData = data.map(state => ({
             state: state.state.replace('_', ' '),
 	    total: state.count,
             male: state.male_count,
@@ -61,13 +61,6 @@ const series = d3.stack().keys(['male', 'female'])(stackedData);
   // A function to format the value in the tooltip.
   const formatValue = x => isNaN(x) ? "N/A" : x.toLocaleString("en")
 
-  // Create the SVG container.
-  const svg = d3.create("svg")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("viewBox", [0, 0, width, height])
-      .attr("style", "max-width: 100%; height: auto;");
-
   // Append a group for each series, and a rect for each element in the series.
   svg.append("g")
     .selectAll()
@@ -98,8 +91,7 @@ const series = d3.stack().keys(['male', 'female'])(stackedData);
 
   // Return the chart with the color scale as a property (for the legend).
   return Object.assign(svg.node(), {scales: {color}});
-        
-    },[props.data,svg]);
+},[props.data,svg]);
 
     return (
         <div
