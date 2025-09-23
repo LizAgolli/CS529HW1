@@ -30,6 +30,7 @@ export default function WhiteHatStats(props){
         //data
         const stackedData = data.map(state => ({
             state: state.state.replace('_', ' '),
+	    abbreviation: state.abreviation,
 	    total: state.count,
             male: state.male_count,
             female: state.female_count
@@ -89,10 +90,15 @@ const color = d3.scaleOrdinal()
     });
 
   // Append the horizontal axis.
-  svg.append("g")
+  const abrev = svg.append("g")
       .attr("transform", `translate(0,${height - marginBottom})`)
       .call(d3.axisBottom(x).tickSizeOuter(0))
-      .call(g => g.selectAll(".domain").remove());
+  abrev.selectAll(".tick text")
+    .text(d => {
+        const state = stackedData.find(s => s.state === d);
+        return state ? state.abbreviation : d;
+    })
+    .attr("font-size", "10px");
 
   // Append the vertical axis.
   svg.append("g")
