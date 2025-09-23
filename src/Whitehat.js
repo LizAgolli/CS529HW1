@@ -11,7 +11,7 @@ export default function Whitehat(props){
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
     var isZoomed = false;
     //TODO: change the line below to change the size of the white-hat maximum bubble size
-    const maxRadius = 10;
+    const maxRadius = 5;
     //albers usa projection puts alaska in the corner
     //this automatically convert latitude and longitude to coordinates on the svg canvas
     const projection = d3.geoAlbersUsa()
@@ -42,7 +42,7 @@ export default function Whitehat(props){
 
             //changed so more red is more bad
             const stateScale = d3.scaleLinear()
-                .domain([0,stateMax])
+                .domain([stateMin,stateMax])
                 .range([0,1]);
 
             //this function takes a number 0-1 and returns a color
@@ -82,8 +82,27 @@ export default function Whitehat(props){
                 .attr('d',geoGenerator)
                 .attr('fill',getStateColor)
                 .attr('stroke','black')
-                .attr('stroke-width',.1);
-
+                .attr('stroke-width',.1)
+                .on('mouseover',(e,d)=>{
+                    let state = cleanString(d.properties.NAME);
+                    //this updates the brushed state
+                    if(props.brushedState !== state){
+                        props.setBrushedState(state);
+                    }
+                    let sname = d.properties.NAME;
+                    let count = getCount(sname);
+                    let text = sname + ' Gun Deaths Per Million' + '</br>'
+                        +  count.toFixed(1); // + '</br>'
+			//+ 'Male Victims: ' +  count_male_per_mil.toFixed(1) + '</br>'
+			//+ 'Female Victims: ' + count_female_per_mil.toFixed(1);
+                    tTip.html(text);
+                }).on('mousemove',(e)=>{
+                    //see app.js for the helper function that makes this easier
+                    props.ToolTip.moveTTipEvent(tTip,e);
+                }).on('mouseout',(e,d)=>{
+                    props.setBrushedState();
+                    props.ToolTip.hideTTip(tTip);
+                });
 
             //TODO: replace or edit the code below to change the city marker being used. Hint: think of the cityScale range (perhaps use area rather than radius). 
             //draw markers for each city

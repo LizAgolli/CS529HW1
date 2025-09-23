@@ -11,9 +11,11 @@ export default function WhiteHatStats(props){
     //this will automatically resize when the window changes so passing svg to a useeffect will re-trigger
     const [svg, height, width, tTip] = useSVGCanvas(d3Container);
 
-    const margin = 50;
-    const radius = 10;
-
+  const marginTop = 10;
+  const marginRight = 10;
+  const marginBottom = 20;
+  const marginLeft = 40;
+  const radius = 10;
 
     //TODO: modify or replace the code below to draw a more truthful or insightful representation of the dataset. This other representation could be a histogram, a stacked bar chart, etc.
     //this loop updates when the props.data changes or the window resizes
@@ -24,105 +26,78 @@ export default function WhiteHatStats(props){
 
         //aggregate gun deaths by state
         const data = props.data.states;
-        
-        //get data for each state
-        const plotData = [];
-        for(let state of data){
-            const dd = drawingDifficulty[state.abreviation];
-            let entry = {
-                'count': state.count,
-                'name': state.state,
-                'easeOfDrawing': dd === undefined? 5: dd,
-                'genderRatio': state.male_count/state.count,
-            }
-            plotData.push(entry)
-        }
 
-        //get transforms for each value into x and y coordinates
-        let xScale = d3.scaleLinear()
-            .domain(d3.extent(plotData,d=>d.easeOfDrawing))
-            .range([margin+radius,width-margin-radius]);
-        let yScale = d3.scaleLinear()
-            .domain(d3.extent(plotData,d=>d.count))
-            .range([height-margin-radius,margin+radius]);
+        //data
+        const data = data.map(state => ({
+            state: state.state.replace('_', ' '),
+	    total: state.count,
+            male: state.male_count,
+            female: state.female_count
+        }));
 
+       //sorting states by total deaths
+	stackedData.sort((a, b) => b.total - a.total);
+//too many variable names!!!
+//https://observablehq.com/@d3/stacked-bar-chart/2 https://observablehq.com/@d3/stacked-horizontal-bar-chart/2  is where I got reference code
 
-        //draw a line showing the mean values across the curve
-        //this probably isn't actually regression
-        const regressionLine = [];
-        for(let i = 0; i <= 10; i+= 1){
-            let pvals = plotData.filter(d => Math.abs(d.easeOfDrawing - i) <= .5);
-            let meanY = 0;
-            if(pvals.length > 0){
-                for(let entry of pvals){
-                    meanY += entry.count/pvals.length
-                }
-            }
-            let point = [xScale(i),yScale(meanY)]
-            regressionLine.push(point)
-        }
-        
-        //scale color by gender ratio for no reason
-        let colorScale = d3.scaleDiverging()
-            .domain([0,.5,1])
-            .range(['magenta','white','navy']);
+//stacking data
+const series = d3.stack().keys(['male', 'female'])(stackedData);
 
-        //draw the circles for each state
-        svg.selectAll('.dot').remove();
-        svg.selectAll('.dot').data(plotData)
-            .enter().append('circle')
-            .attr('cy',d=> yScale(d.count))
-            .attr('cx',d=>xScale(d.easeOfDrawing))
-            .attr('fill',d=> colorScale(d.genderRatio))
-            .attr('r',10)
-            .on('mouseover',(e,d)=>{
-                let string = d.name + '</br>'
-                    + 'Gun Deaths: ' + d.count + '</br>'
-                    + 'Difficulty Drawing: ' + d.easeOfDrawing;
-                props.ToolTip.moveTTipEvent(tTip,e)
-                tTip.html(string)
-            }).on('mousemove',(e)=>{
-                props.ToolTip.moveTTipEvent(tTip,e);
-            }).on('mouseout',(e,d)=>{
-                props.ToolTip.hideTTip(tTip);
-            });
-           
-        //draw the line
-        svg.selectAll('.regressionLine').remove();
-        svg.append('path').attr('class','regressionLine')
-            .attr('d',d3.line().curve(d3.curveBasis)(regressionLine))
-            .attr('stroke-width',5)
-            .attr('stroke','black')
-            .attr('fill','none');
+// Prepare the scales for positional and color encodings.
+  const x = d3.scaleBand()
+      .domain(d3.groupSort(data, D => -d3.sum(D, d => d.count), d => d.state))
+      .range([marginLeft, width - marginRight])
+      .padding(0.1);
 
-        //change the title
-        const labelSize = margin/2;
-        svg.selectAll('text').remove();
-        svg.append('text')
-            .attr('x',width/2)
-            .attr('y',labelSize)
-            .attr('text-anchor','middle')
-            .attr('font-size',labelSize)
-            .attr('font-weight','bold')
-            .text('How Hard it Is To Draw Each State Vs Gun Deaths');
+  const y = d3.scaleLinear()
+      .domain([0, d3.max(series, d => d3.max(d, d => d[1]))])
+      .rangeRound([height - marginBottom, marginTop]);
 
-        //change the disclaimer here
-        svg.append('text')
-            .attr('x',width-20)
-            .attr('y',height/3)
-            .attr('text-anchor','end')
-            .attr('font-size',10)
-            .text("I'm just asking questions");
+  const color = d3.scaleOrdinal()
+      .domain(series.map(d => d.key))
+      .range(d3.schemeSpectral[series.length])
+      .unknown("#ccc");
 
-        //draw basic axes using the x and y scales
-        svg.selectAll('g').remove()
-        svg.append('g')
-            .attr('transform',`translate(0,${height-margin+1})`)
-            .call(d3.axisBottom(xScale))
+  // A function to format the value in the tooltip.
+  const formatValue = x => isNaN(x) ? "N/A" : x.toLocaleString("en")
 
-        svg.append('g')
-            .attr('transform',`translate(${margin-2},0)`)
-            .call(d3.axisLeft(yScale))
+  // Create the SVG container.
+  const svg = d3.create("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", [0, 0, width, height])
+      .attr("style", "max-width: 100%; height: auto;");
+
+  // Append a group for each series, and a rect for each element in the series.
+  svg.append("g")
+    .selectAll()
+    .data(series)
+    .join("g")
+      .attr("fill", d => color(d.key))
+    .selectAll("rect")
+    .data(D => D.map(d => (d.key = D.key, d)))
+    .join("rect")
+      .attr("x", d => x(d.data[0]))
+      .attr("y", d => y(d[1]))
+      .attr("height", d => y(d[0]) - y(d[1]))
+      .attr("width", x.bandwidth())
+    .append("title")
+      .text(d => `${d.data[0]} ${d.key}\n${formatValue(d.data[1].get(d.key).count)}`);
+
+  // Append the horizontal axis.
+  svg.append("g")
+      .attr("transform", `translate(0,${height - marginBottom})`)
+      .call(d3.axisBottom(x).tickSizeOuter(0))
+      .call(g => g.selectAll(".domain").remove());
+
+  // Append the vertical axis.
+  svg.append("g")
+      .attr("transform", `translate(${marginLeft},0)`)
+      .call(d3.axisLeft(y).ticks(null, "s"))
+      .call(g => g.selectAll(".domain").remove());
+
+  // Return the chart with the color scale as a property (for the legend).
+  return Object.assign(svg.node(), {scales: {color}});
         
     },[props.data,svg]);
 
@@ -137,54 +112,3 @@ export default function WhiteHatStats(props){
 //END of TODO #1.
 
  
-const drawingDifficulty = {
-    'IL': 9,
-    'AL': 2,
-    'AK': 1,
-    'AR': 3,
-    'CA': 9.51,
-    'CO': 0,
-    'DE': 3.1,
-    'DC': 1.3,
-    'FL': 8.9,
-    'GA': 3.9,
-    'HI': 4.5,
-    'ID': 4,
-    'IN': 4.3,
-    'IA': 4.1,
-    'KS': 1.6,
-    'KY': 7,
-    'LA': 6.5,
-    'MN': 2.1,
-    'MO': 5.5,
-    'ME': 7.44,
-    'MD': 10,
-    'MA': 6.8,
-    'MI': 9.7,
-    'MN': 5.1,
-    'MS': 3.8,
-    'MT': 1.4,
-    'NE': 1.9,
-    'NV': .5,
-    'NH': 3.7,
-    'NJ': 9.1,
-    'NM': .2,
-    'NY': 8.7,
-    'NC': 8.5,
-    'ND': 2.3,
-    'OH': 5.8,
-    'OK': 6.05,
-    'OR': 4.7,
-    'PA': 4.01,
-    'RI': 8.4,
-    'SC': 7.1,
-    'SD': .9,
-    'TN': 3.333333,
-    'TX': 8.1,
-    'UT': 2.8,
-    'VT': 2.6,
-    'VA': 8.2,
-    'WA': 9.2,
-    'WV': 7.9,
-    'WY': 0,
-}
